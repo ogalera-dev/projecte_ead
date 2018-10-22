@@ -1,0 +1,133 @@
+---
+title: "Pràctica 1, Eines d'ajuda a la presa de decisions"
+author: "Oscar Galera i Alfaro"
+date: "15 d'Octubre, 2018"
+output: pdf_document
+---
+
+## Analisi del Data Set Auto MPG
+En aquesta pràctica s'analitzar el fitxer de dades que hi ha disponible en el següent enllaç
+<https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data>
+
+## Carregar les dades
+El primer que cal fer és carregar el fitxer que conté les dades, per això executem la següent comanda
+```{r}
+#Carregar les dades
+dades <- read.csv(file="dades.csv", header=FALSE, sep = ",")
+```
+
+## Preprocessament de les dades
+Si tot va bé, s'hauria de generar un nou dataset amb 398 registres i 9 variables. El tipus d'aquestes variables correspon a:  
+
++ V1. mpg: V. Quantitativa continua  
++ V2. cylinders: V. Quantitativa discreta  
++ V3. displacement: V. Quantitativa continua  
++ V4. horsepower: V. Quantitativa continua  
++ V5. weight: V. Quantitativa continua  
++ V6. acceleration: V. Quantitativa continua  
++ V7. model year: V. Quantitativa discreta  
++ V8. origin: V. Quantitativa discreta  
++ V9. car name: V. Qualitativa    
+
+Com que el fitxer de dades no conté el nom de les variables i perquè sigui més fàcil la seva interpretació, fem l'assignació de noms amb la següent comanda.
+```{r}
+#Renombrar les columnes
+names(dades) <- c("mpg", "cylinders", "displ", "hp", "weight", "accel", "model_year", 
+                  "origin", "car_name")
+```
+
+Per veure com ha interpretat les variables R, executem la següent comanda
+```{r}
+#Mostrar el tipus de les variables
+str(dades)
+```
+
+Dels resultats obtinguts, veiem que R reconeix hp com una variable qualitativa quan sabem que es tracta d'una variable quantitativa, amb la següent comanda podem veure la distribució de valors que pren la variable
+```{r}
+#Mostrar la distribució de valors que pren la variable hp
+levels(dades$hp)
+```
+Com es pot veure, hi ha observacions amb valor abscent (?) i per aquest motiu el inferidor de R no ha detectat correctament el tipus. Quantes d'aquestes observacions tenen valors abscents?
+
+```{r}
+#Nombre d'observacions amb valor abscent (?) en la variable hp
+nrow(dades[dades$hp == "?",])
+```
+
+De les diferents estartègies per resoldre aquesta situació, s'obta per eliminar les observació afectades perquè es recomana complir la regla $N > 20p$ (on $N$ correspon al nombre d'observacions i $p$ al nombre de variables) per a poder fer l'anàlisi sense problemes, i en aquest cas s'assoleig el valor mínim, ja que tenim $392 >>  180$  
+
+```{r}
+#Filtrar les observacions que tenen valor abscent en la variable hp
+dades = dades[dades$hp != "?", ]
+```
+
+Fet això, ja es pot convertir la variable hp de qualitativa a quantitativa
+```{r}
+#Convertir hp de qualitativa a quantitativa
+dades$hp = as.numeric(dades$hp)
+str(dades)
+```
+Arribats a aquest punt ja tenim les dades preparades per començar a treballar.
+
+## Analisi descriptiu bàsic
+```{r}
+bplotNumerics <- function(){
+  #Agrupar els gràfics en tripletes
+  attach(mtcars)
+  par(mfrow=c(2,3))
+  
+  #Bloxplots
+  boxplot(dades$mpg, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="MPG", main="Years")
+  boxplot(dades$cylinders, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="Cylinders", main="Cylinders")
+  boxplot(dades$displ, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="Displ", main="Displacement")
+  boxplot(dades$hp, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="HP", main="HP")
+  boxplot(dades$weight, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="Weight", main="Weight")
+  boxplot(dades$accel, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="Accel", main="Accel")
+  boxplot(dades$model_year, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="year", main="Model year")
+  boxplot(dades$origin, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="origin", main="Origin")
+}
+
+bplotNumerics()
+```
+
+## Es pot aplicar l'analisi de components principals?
+L'anàlisi de components principals o ACP permet descriure un conjunt de dades, resumint-lo i reduir la seva dimensionalitat. A través d'aquest anàlisi buscarem resposta a les preguntes:  
+
++ Estudi dels vehicles: Dos vehicles es consideraràn similars si tenen característiques semblants.  
++ Estudi de les característiques
+
+Primer però, cal comprovar que es pugui realitzar l'anàlisi de components principals. Això serà així si la correlació entre variables és significativa. En la següent matriu es pot veure la correlació entre les variables del conjunt de dades.
+```{r}
+library("corrplot")
+cor.mat <- cor(dades[,1:8])
+corrplot(cor.mat, type="lower", order="hclust", tl.col="black", tl.srt=45)
+```
+
+```{r}
+library("PerformanceAnalytics")
+chart.Correlation(dades[,1:8], histogram = TRUE, pch = 19)
+```
+
+Seguidament es fa el test d'esfericitat de Barlett
+```{r}
+library(psych)
+cortest.bartlett(cor.mat, n=100 )
+```
+Degut a que el p-value és molt petit (pròxim a 0) descartem la hipòtesis nula (heterogenicitat de variancies) i acceptem com a hipotesi alternativa que ens diu que hi ha diferència entre les variancies de les variables.  
+
+Seguidament apliquem un test de $Kaiser-Mayer-Olkin$
+```{r}
+library(psych)
+KMO(cor.mat)
+```
+Com obtenim un resultat de 0.8, assumim que es pot aplicar l'anàlisi de components principals.
+
+## Aplicant l'analisi de components principals?
+Primer seleccionem les variables que seràn actives en aquest analisi
+```{r}
+dades.PCA <- dades[, 1:8]
+library(FactoMineR)
+res <- PCA(dades.PCA, scale.unit=TRUE, ncp=5, graph=FALSE)
+
+plot.PCA(res,axes=c(1,2),choix="ind",habillage="none",col.ind="black",col.ind.sup="blue",col.quali="magenta",label=c("ind","ind.sup","quali"),new.plot=TRUE,title="")
+```
