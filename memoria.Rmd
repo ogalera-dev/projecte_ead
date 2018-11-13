@@ -7,6 +7,7 @@ output: pdf_document
 
 ## Analisi del Data Set Auto MPG
 En aquesta pràctica s'analitzar el fitxer de dades que hi ha disponible en el següent enllaç
+
 <https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data>
 
 ## Carregar les dades
@@ -42,19 +43,19 @@ Per veure com ha interpretat les variables R, executem la següent comanda
 str(dades)
 ```
 
-Dels resultats obtinguts, veiem que R reconeix hp com una variable qualitativa quan sabem que es tracta d'una variable quantitativa, amb la següent comanda podem veure la distribució de valors que pren la variable
+Dels resultats obtinguts, veiem que R reconeix hp com una variable qualitativa quan sabem que es tracta d'una variable quantitativa, amb la següent comanda podem veure la distribució de valors que pren aquesta variable
 ```{r}
 #Mostrar la distribució de valors que pren la variable hp
 levels(dades$hp)
 ```
-Com es pot veure, hi ha observacions amb valor abscent (?) i per aquest motiu el inferidor de R no ha detectat correctament el tipus. Quantes d'aquestes observacions tenen valors abscents?
+Com es pot veure, hi ha observacions amb valor abscent (?) i per aquest motiu el inferidor de R no ha detectat correctament el tipus. Quantes d'aquestes observacions tenen valor abscent?
 
 ```{r}
 #Nombre d'observacions amb valor abscent (?) en la variable hp
 nrow(dades[dades$hp == "?",])
 ```
 
-De les diferents estartègies per resoldre aquesta situació, s'obta per eliminar les observació afectades perquè es recomana complir la regla $N > 20p$ (on $N$ correspon al nombre d'observacions i $p$ al nombre de variables) per a poder fer l'anàlisi sense problemes, i en aquest cas s'assoleig el valor mínim, ja que tenim $392 >>  180$  
+De les diferents estartègies per resoldre aquesta situació, s'obta per eliminar les observació afectades perquè es recomana complir la regla $N > 20p$ (on $N$ correspon al nombre d'observacions i $p$ al nombre de variables) per a poder fer l'anàlisi sense problemes, i en aquest cas s'assoleig el valor mínim, ja que tenim $392 > 180$  
 
 ```{r}
 #Filtrar les observacions que tenen valor abscent en la variable hp
@@ -70,9 +71,33 @@ str(dades)
 Arribats a aquest punt ja tenim les dades preparades per començar a treballar.
 
 ## Analisi descriptiu bàsic
+Per aquest analisi bàsic, es vol veure els valors de centralitat i dispersió per cada variable. En els següents diagrames es mostra la distribució de valors per les variables.
+
+### Histogrames
+```{r}
+hNumerics <- function(){
+  #Agrupar els gràfics en tripletes
+  attach(mtcars)
+  par(mfrow=c(2,3))
+  
+  hist(x = dades$mpg, main="MPG")
+  barplot(table(dades$cylinders), main="Cylinders")
+  hist(x = dades$displ, main = "Disp")
+  hist(x = dades$hp, main="hp")
+  hist(x = dades$weight, main="weight")
+  hist(x = dades$accel, main="accel")
+  barplot(table(dades$model_year), main="model year")
+  barplot(table(dades$origin), main="Origin")
+}
+hNumerics()
+```
+
+Es destaca que les variables "Accel" i "Model year" tenen un alt grau de simetria, i en el cas de "Model year" la seva distribució és força uniforme.
+
+### Diagrames de caixa
+Un altre tipus de gràfic molt útil per aquesta finalitat és el diagrama de caixa.
 ```{r}
 bplotNumerics <- function(){
-  #Agrupar els gràfics en tripletes
   attach(mtcars)
   par(mfrow=c(2,3))
   
@@ -86,48 +111,254 @@ bplotNumerics <- function(){
   boxplot(dades$model_year, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="year", main="Model year")
   boxplot(dades$origin, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="origin", main="Origin")
 }
-
 bplotNumerics()
+print("Accel")
+```
+
+Aquí es pot tornar a veure com hi ha un clar biaix a la dreta per la variable "Cylinders" i "Origin", també es pot observar com les variables "Accel" i "Model Year" tenen certa simetria (com s'ha dit anteriorment) i com hi ha dades atípiques per la variable "Accel". 
+
+Les dades atípies inferiors són aquelles que tenen un valor menor a $1Q - 1.5 RIQ$ i les superiors aquelles amb un valor major a $3Q + 1.5 RIQ$. 
+
+```{r}
+#Valors atípics per la variable Accel.
+#Inferiors
+dades[dades$accel <= 13.78 - 1.5 * IQR(dades$accel), ][c("accel", "model_year", "car_name")]
+
+#Superiors
+dades[dades$accel >= 17.02 + 1.5 * IQR(dades$accel), ][c("accel", "model_year", "car_name")]
+```
+
+### Resum de les variables
+En les següents taules es mostren els estadístics de centralistat i dispersió classificats com a robustos i no robustos
+
+```{r}
+#install.packages("psych")
+library(knitr)
+library(kableExtra)
+taulaResum <- function(dades, nom, fw = TRUE){
+  library(psych)
+  #Estadístics de centralitat
+  dades <- na.omit(dades)
+  mitja <- mean(dades)
+  mediana <- median(dades)
+  mitjana_retallada_05 <- mean(dades, trim=0.5, na.rm = TRUE) 
+
+  if(fw){
+    mitjana_winsoritzada_05 <- winsor.mean(dades, trim=0.5, na.rm=TRUE)
+  }else{
+    mitjana_winsoritzada_05 <- NA
+  }
+  
+  #Estadístics de dispersió
+  sd <- sd(dades)
+  iqr <- IQR(dades)
+  mad <- max(dades)
+  
+  df <- data.frame("Estadistic" = 
+                     c("Mediana", "Mit. Retallada", "Mit. Winsoritzada", "Mitjana"
+                       , "RIC", "MAD", "D. Estàndard"), "Valor" = 
+                     c(mediana, mitjana_winsoritzada_05, 
+                       mitjana_winsoritzada_05, mitja, iqr, mad, sd))
+  kable(df, caption = paste("Variable ",nom)) %>%
+    kable_styling("striped", full_width = F) %>%
+    group_rows("C. robustos", 1, 4) %>%
+    group_rows("C. NO robustos", 4, 4) %>%
+    group_rows("D. robustos", 5, 6) %>%
+    group_rows("D. NO robustos", 7, 7) 
+}
+```
+
+
+```{r}
+taulaResum(dades$mpg, "mpg")
+```
+
+
+```{r}
+taulaResum(dades$displ, "disp")
+```
+
+```{r}
+taulaResum(dades$hp, "hp")
+```
+
+```{r}
+taulaResum(dades$weight, "weight")
+```
+
+```{r}
+taulaResum(dades$accel, "accel")
 ```
 
 ## Es pot aplicar l'analisi de components principals?
-L'anàlisi de components principals o ACP permet descriure un conjunt de dades, resumint-lo i reduir la seva dimensionalitat. A través d'aquest anàlisi buscarem resposta a les preguntes:  
+L'anàlisi de components principals o ACP permet descriure un conjunt de dades, resumint-lo i reduir la seva dimensionalitat. En aquest cas, s'usarà per interpretar la relació que hi ha entre les variables. 
 
-+ Estudi dels vehicles: Dos vehicles es consideraràn similars si tenen característiques semblants.  
-+ Estudi de les característiques
-
-Primer però, cal comprovar que es pugui realitzar l'anàlisi de components principals. Això serà així si la correlació entre variables és significativa. En la següent matriu es pot veure la correlació entre les variables del conjunt de dades.
+Del conjunt de variables disponibles, s'ha deccidit utilitzar la variable "car_name" com a variable suplementaria en la representació i per tant queda exclosa de les variables actives.
 ```{r}
+#Seleccionar varialbes actives
+dades.PCA <- dades[, c("mpg", "cylinders", "displ", "hp", "weight", "accel", "model_year", 
+                  "origin")]
+
+names(dades.PCA)
+```
+
+Abans de fer l'anàlisi però, cal comprovar que aquest es pugui realitzar. Això serà així si la correlació entre variables és significativa (hi ha heterocedasticitat). 
+
+Matriu esquemàtica de correlació entre variables.
+
+```{r,message=FALSE}
 library("corrplot")
-cor.mat <- cor(dades[,1:8])
+cor.mat <- cor(dades.PCA)
 corrplot(cor.mat, type="lower", order="hclust", tl.col="black", tl.srt=45)
 ```
 
-```{r}
+Matriu de gràfics bivariants i coeficient de correlació de Pearson.
+
+```{r,message=FALSE}
 library("PerformanceAnalytics")
 chart.Correlation(dades[,1:8], histogram = TRUE, pch = 19)
 ```
 
-Seguidament es fa el test d'esfericitat de Barlett
+Seguidament es fa el test d'esfericitat de Barlett, que comprova si hi ha com a mínim dues de les variables de treball tenen diferent variancia, és a dir, que aplica el següent contrast d'hipòtesis: $$H_{0}: s^{2}_{1} = s^{2}_{2} \wedge s^{2}_{3} ... \wedge s^{2}_{k}$$ $$H_{1}: s^{2}_{1} \ne s^{2}_{2} \vee s^{2}_{2} \ne s^{2}_{3} ... \vee \ne s^{2}_{k} $$ On $k$ correspon al nombre de variables.
 ```{r}
 library(psych)
 cortest.bartlett(cor.mat, n=100 )
 ```
-Degut a que el p-value és molt petit (pròxim a 0) descartem la hipòtesis nula (heterogenicitat de variancies) i acceptem com a hipotesi alternativa que ens diu que hi ha diferència entre les variancies de les variables.  
+Degut a que el $p-value$ és molt petit (pròxim a 0) rebutgem la hipòtesis nul·la (homocedasticitat) i acceptem amb un nivell de confiança superior a 99% que com a mínim hi ha una variable amb una desviació estàndard diferent al de la resta. 
 
-Seguidament apliquem un test de $Kaiser-Mayer-Olkin$
+I també apliquem un test de $Kaiser-Mayer-Olkin$
 ```{r}
 library(psych)
 KMO(cor.mat)
 ```
-Com obtenim un resultat de 0.8, assumim que es pot aplicar l'anàlisi de components principals.
+Com obtenim un resultat de 0.8, assumim que el test és positiu i que es pot aplicar l'anàlisi de components principals.
 
-## Aplicant l'analisi de components principals?
-Primer seleccionem les variables que seràn actives en aquest analisi
+## Aplicant l'analisi de components principals
+
+Com que ja sabem que hi ha heterocedasticitat, apliquem la tècnica de l'anàlisi de components principals amb la funció $PCA$ del paquet $FactoMineR$.
 ```{r}
-dades.PCA <- dades[, 1:8]
 library(FactoMineR)
 res <- PCA(dades.PCA, scale.unit=TRUE, ncp=5, graph=FALSE)
+```
 
-plot.PCA(res,axes=c(1,2),choix="ind",habillage="none",col.ind="black",col.ind.sup="blue",col.quali="magenta",label=c("ind","ind.sup","quali"),new.plot=TRUE,title="")
+### Eixos factorials
+Com que hi ha buit variables actives, s'han trobat buit eixos factorials. En la següent llista es mostra la inèrcia que conté cada un d'aquests eixos, aquesta inèrica ens ve representada pels valors pròpis de la matriu de variancies.
+```{r}
+res$eig
+```
+
+Però és clar, no serveix de gaire utilitzar-los tots, i així doncs, quins són els eixos més representatius? Segons el criteri de "Latent Root" es poden considerar tots aquells eixos amb un valor propi superior a 1, és a dir, que tenen més inèrcia que qualsevol de les variables originals.
+```{r, message=FALSE}
+library("factoextra")
+fviz_screeplot(res, ncp=8, barfill=c(rep(1,3),rep(2,5)))
+```
+
+Per veure-ho amb més perspectiva, apliquem un Scree Plot entre els components principals i el seu valor pròpi per veure on es troba la discontinuïtat.
+
+```{r}
+screeplot(princomp(dades.PCA,cor=TRUE),type = c("lines"))
+```
+
+En aquest cas, tot i que un 60,61% de la variabilitat ve explicada pel primer eix, s'ha decidit agafar els tres primers per tenir més marge en els exemples. Així doncs, amb aquests tres eixos tenim un 82,68% de la variabilitat de les dades. 
+
+També podem veure quines variables han tingut un major impacte alhora de determinar els eixos, això ve dictat pel factor "contribution". Pel primer eix, aquestes variables són: $displ$, $cylinders$, $weight$ i $mpg$, i les de menor impacte són: $model_year$, $accel$.
+
+```{r}
+res[["var"]][["contrib"]]
+```
+
+Les variables més ben representades tenen un major valor en el camp "cos2", pel primer eix són: $displ$, $cylinders$, $weight$ i $mpg$, i les menys ben representades: $model_year$, $accel$ i $origin$. És important veure que en aquest cas les variables més ben representades coincideixen amb les que han tingui un major impacte per elegir l'eix factorial, però no té perquè ser sempre així (CORRECTE???).
+
+```{r}
+res[["var"]][["cos2"]]
+```
+
+Ara per veure millor la representació de les variables sobre els eixos factorials, podem plasmar-les sobre en una cirfunferència de radi u, on els eixos de coordenades corresponen als dos eixos factorials amb més inèrica i la tonalitat de blau al nivell de contribució.
+
+```{r, message=FALSE}
+#Coordenades
+res[["var"]][["cor"]]
+
+#Gràfic
+fviz_pca_var(res, axes = c(1, 2), col.var="contrib", title="1er i 3er EF")
+```
+
+En el primer eix es mostren els vehicles més pesats (weight) que solen tenir una major cilindrada (cylinder) i que tendeixen a consumir més combustible per milla recorreguda (mpg). També es pot veure com la variable "disp" ens diu que els cotxes menys pes i cilindrada necessiten menys espai "displacement" per frenar. El segon eix ens diu que a mesura que augmenta l'any del model, hi ha tendència a disminuir el pes i cilindrada.
+
+Com que les variables $hp$, $accel$ i $origin$ no estan ben representades en cap dels dos primers eixos, però si ho estan millor en el tercer eix. Es torna a dibuixar la circunferència però aquesta vegada amb el primer i tercer eix.
+```{r, message=FALSE}
+#Gràfic
+fviz_pca_var(res, axes = c(1, 3), col.var="contrib", title="1er i 3er EF")
+```
+
+En el tercer eix es pot intuir que a mesura que augmenta la poténcia "hp", augmenta l'acceleració "accel".
+
+Ara toca representar les dades sobre els eixos factorials
+```{r, message=FALSE}
+fviz_pca_biplot(res, axes = c(1, 2), geom="point", title="Eixos i Punts")
+```
+
+Ara projectarem la variable $car_name$ que és suplementaria (no ha influit en els calculs dels eixos factorials).
+```{r, message=FALSE}
+remove(dades.PCA)
+dades.PCA = dades[, c("mpg", "cylinders", "displ", "hp", "weight", "accel", "model_year", 
+                  "origin", "car_name")]
+res<-PCA(dades.PCA , scale.unit=TRUE, ncp=5, quali.sup=c(9:9), graph = FALSE)
+plot.PCA(res, axes=c(1, 2), choix="ind", habillage="none", col.ind="black",
+            col.ind.sup="blue", col.quali="magenta", label=c("ind", "ind.sup", "quali"),new.plot=TRUE)
+```
+
+Com es pot veure, al lectura de les dades és impossible degut a la gran quantitat d'aquestes que s'estan representant. Per això mostrarem 4  (FALTA!!!)
+```{r, message=FALSE}
+plot.PCA(res,axes=c(1,2),choix="ind",habillage="none",col.ind="black",invisible="ind",col.ind.sup="blue",col.quali="magenta",label=c("ind","ind.sup","quali"),new.plot=TRUE)
+```
+
+## Analisi predictiu
+Per fer aquest anàlisi, primer intentarem fer una regressió lineal simple per preedir el valor de la variable $MPG$ a partir de la variable $weight$. També s'aplicarà un anàlisi de variancia (ANOVA) per intentar preedir el $weight$ a través del nombre de $cylinders$.  
+
+### Regressió lineal simple
+Per aquest models de regressió lineal s'han de complir les següents propietats
+1. Independència, s'interpreta que la observacions de la mostra s'han extret amb independencia entre elles.
+2. Linealitat, s'assumeix que la variable $MPG$ es pot modelar linealment a partir de la variable $weigth$.
+3. Normalitat en els errors, on els errors segueixen una distribució normal.
+4. Homocedasticitat, on la variancia és constant.
+
+Per comprobar el tercer i quart punt es mostren les gràfiques.
+```{r, message=FALSE}
+res <- lm(mpg ~ weight, data = dades)
+oldpar <- par(oma=c(0,0,3,0), mfrow=c(2,2))
+plot(res)
+par(oldpar)
+```
+
+El gràfic "Residuals vs Fitted" mostra la homocedasticitat (punt 4) mentre que el gràfic "Normal Q-Q" mostra la normalitat dels errors (Punt 3). 
+
+Per assegurar que es compleix l'homocedasticitat, es pot aplicar un test $Breuch$ $Pagane$ on la hipòtesi nul·la és l'homocedasticitat.
+```{r, message=FALSE}
+#install.packages("lmtest")
+library(lmtest)
+bptest(mpg~weight,data=dades)
+```
+
+Com que el p-value del test és molt inferior al nivell de significació, amb un nivell de confiança superior al 99% es pot rebutjar la hipòtesi nul·la i considerar que no hi ha homocedasticitat (hi ha hterocedasticitat).
+
+Per comprobar la constància en els errors, es pot aplicar un test de $Shapiro$ $Wilk$ i un altre d' $Anderson-Daling$ on en tots dos casos, la hipòtesi nul·la representa normalitat en els residus.
+```{r, message=FALSE}
+shapiro.test(residuals(res))
+```
+
+```{r, message=FALSE}
+#install.packages("nortest")
+library(nortest)
+ad.test(residuals(res))
+```
+En el test de $Shapiro$ $Wilk$ s'ha obtingut un p-value de 2.525e-7 i en el test d'$Anderson-Daling$ un p-value de 1.428e-6, i per tant en tots dos casos podem descartar la hipòtesi nul·la amb un nivell de confiança superior al 99% i dir que els residus no segueixen una distribució normal.
+
+Com que hem demostrat que en aquest cas no es compleixen el 3er i 4rt punt anunciats, la regressió que s'obtindria seria de baixa qualitat i per aquest motiu no es continua.
+
+#### Fer ANOVA per weight ~ cylinders ??? no homocedasticitat (p-value = 0.0025)
+```{r, message=FALSE}
+bptest(displ~cylinders,data=dades)
+library(nortest)
+ad.test(residuals(lm(weight~cylinders+displ, dades)))
 ```
