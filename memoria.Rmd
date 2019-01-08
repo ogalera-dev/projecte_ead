@@ -5,73 +5,99 @@ date: "15 d'Octubre, 2018"
 output: pdf_document
 ---
 
-## Analisi del Data Set Auto MPG
-En aquesta pràctica s'analitzar el fitxer de dades que hi ha disponible en el següent enllaç
+# Anàlisi del Data Set *Auto MPG*
+En aquesta pràctica s'analitzara el fitxer de dades que hi ha disponible en el següent enllaç
 
 <https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data>
 
+**Nota:** El *dataset* original també incorpora la variable *origin*, però com que no hi ha una descripció clara del seu significat ni es pot deduir a partir de la seva distribució de valors, s'ha optat per excloure-la d'aquest anàlisi. 
+
 ## Carregar les dades
-El primer que cal fer és carregar el fitxer que conté les dades, per això executem la següent comanda
+El primer que cal fer és carregar el fitxer que conté les dades, per això s'executa la següent comanda
 ```{r}
 #Carregar les dades
 dades <- read.csv(file="dades.csv", header=FALSE, sep = ",")
 ```
 
 ## Preprocessament de les dades
-Si tot va bé, s'hauria de generar un nou dataset amb 398 registres i 9 variables. El tipus d'aquestes variables correspon a:  
+Si tot va bé, s'ha de generar un nou dataset amb **398 registres i 12 variables** (la variable original "car name" s'ha dividit en les variables "model" i "marca"). 
 
-+ V1. mpg: V. Quantitativa continua  
-+ V2. cylinders: V. Quantitativa discreta  
-+ V3. displacement: V. Quantitativa continua  
-+ V4. horsepower: V. Quantitativa continua  
-+ V5. weight: V. Quantitativa continua  
-+ V6. acceleration: V. Quantitativa continua  
-+ V7. model year: V. Quantitativa discreta  
-+ V8. origin: V. Quantitativa discreta  
-+ V9. car name: V. Qualitativa    
+El tipus d'aquestes variables correspon a:  
 
-Com que el fitxer de dades no conté el nom de les variables i perquè sigui més fàcil la seva interpretació, fem l'assignació de noms amb la següent comanda.
++ V1. *mpg*: Consum en *miles per galon* - V. Quantitativa continua  
++ V2. *cylinders*: Nombre de cilindres - V. Quantitativa discreta  
++ V3. *displacement*: Distància necessaria per frenar - V. Quantitativa continua  
++ V4. *horsepower*: Potència - V. Quantitativa continua  
++ V5. *weight*: Pes - V. Quantitativa continua  
++ V6. *acceleration*: Acceleració - V. Quantitativa continua  
++ V7. *model year*: Any del model - V. Quantitativa discreta  
++ V8. *model*: Nom del model - V. Qualitativa    
++ V9  *marca*: Marca - V. Qualitativa  
++ V10 *marca_1*: Marca del primer subconjunt - V. Qualitativa  
++ V11 *marca_2*: Marca del segon subconjunt - V. Qualitativa  
++ V12 *marca_3*: Marca del tercer subconjunt - V. Qualitativa  
+
+Com que el fitxer de dades no conté el nom de les variables i perquè sigui més fàcil la seva interpretació, es fa l'assignació de noms amb la següent comanda.
 ```{r}
 #Renombrar les columnes
-names(dades) <- c("mpg", "cylinders", "displ", "hp", "weight", "accel", "model_year", 
-                  "origin", "car_name")
+names(dades) <- c("mpg", "cylinders", "displ", "hp", "weight", "accel", "model_year" 
+                  , "model", "marca", "marca_1", "marca_2", "marca_3")
 ```
 
-Per veure com ha interpretat les variables R, executem la següent comanda
+Per veure com ha interpretat les variables *R*
 ```{r}
 #Mostrar el tipus de les variables
 str(dades)
 ```
 
-Dels resultats obtinguts, veiem que R reconeix hp com una variable qualitativa quan sabem que es tracta d'una variable quantitativa, amb la següent comanda podem veure la distribució de valors que pren aquesta variable
+### Variable *hp*
+Dels resultats obtinguts, es pot veure que *R* classifica *hp* com una variable qualitativa quan es tracta d'una variable quantitativa, amb la següent comanda es mostra la distribució de valors que pren la variable
 ```{r}
 #Mostrar la distribució de valors que pren la variable hp
 levels(dades$hp)
 ```
-Com es pot veure, hi ha observacions amb valor abscent (?) i per aquest motiu el inferidor de R no ha detectat correctament el tipus. Quantes d'aquestes observacions tenen valor abscent?
+
+Hi ha observacions amb valor absent (*?*) i per aquest motiu el inferidor de *R* no ha detectat correctament el tipus. Quantes d'aquestes observacions tenen valor absent?
 
 ```{r}
 #Nombre d'observacions amb valor abscent (?) en la variable hp
 nrow(dades[dades$hp == "?",])
 ```
 
-De les diferents estartègies per resoldre aquesta situació, s'obta per eliminar les observació afectades perquè es recomana complir la regla $N > 20p$ (on $N$ correspon al nombre d'observacions i $p$ al nombre de variables) per a poder fer l'anàlisi sense problemes, i en aquest cas s'assoleig el valor mínim, ja que tenim $392 > 180$  
+De les diferents estratègies per resoldre aquesta situació, s'opta per eliminar les observació afectades perquè es recomana complir la regla $N > 20p$ (on $N$ correspon al nombre d'observacions i $p$ al nombre de variables) per a poder fer l'anàlisi sense problemes, i en aquest cas s'assoleix el valor mínim, ja que $392 > 240$  
 
 ```{r}
-#Filtrar les observacions que tenen valor abscent en la variable hp
+#Filtrar les observacions que tenen valor absent en la variable hp
 dades = dades[dades$hp != "?", ]
 ```
 
-Fet això, ja es pot convertir la variable hp de qualitativa a quantitativa
+Fet això, ja es pot convertir la variable *hp* de qualitativa a quantitativa
 ```{r}
 #Convertir hp de qualitativa a quantitativa
 dades$hp = as.numeric(dades$hp)
 str(dades)
 ```
-Arribats a aquest punt ja tenim les dades preparades per començar a treballar.
 
-## Analisi descriptiu bàsic
-Per aquest analisi bàsic, es vol veure els valors de centralitat i dispersió per cada variable. En els següents diagrames es mostra la distribució de valors per les variables.
+### Variables *marca*, *marca_1*, *marca_2* i *marca_3*
+En un inici la variable *marca* contenia moltes categories (37 en total), algunes de les quals mal escrites (32 després de la seva correcció) o amb molt pocs valors. Per facilitar la posterior representació, s'ha decidit fer una agrupació disjunta i equitativa de les categories en les variables *marca_1*, *marca_2* i *marca_3* (valor *other* per la resta), d'aquesta manera la distribució de les categories és:
+```{r, message=FALSE}
+#Categories de la variable marca
+table(dades$marca)
+
+#Categories de la variable marca_1
+table(dades$marca_1)
+
+#Categories de la variable marca_2
+table(dades$marca_2)
+
+#Categories de la variable marca_3
+table(dades$marca_3)
+```
+
+Arribats a aquest punt ja es tenen les dades preparades per començar a treballar.
+
+## Anàlisi descriptiu bàsic
+Es vol veure els valors de centralitat i dispersió per cada variable. En els següents diagrames es mostra la distribució de valors.
 
 ### Histogrames
 ```{r}
@@ -87,51 +113,62 @@ hNumerics <- function(){
   hist(x = dades$weight, main="weight")
   hist(x = dades$accel, main="accel")
   barplot(table(dades$model_year), main="model year")
-  barplot(table(dades$origin), main="Origin")
 }
 hNumerics()
 ```
 
-Es destaca que les variables "Accel" i "Model year" tenen un alt grau de simetria, i en el cas de "Model year" la seva distribució és força uniforme.
+Es destaca que les variables *accel* té un alt grau de simetria, i que la distribució de la variable *model year* és força uniforme.
+
+### Diagrama de sectors
+També es pot utilitzar un diagrama de sectors per veure com es distribueixen els vehicles de la mostra en base a les marques
+
+```{r, message=FALSE, fig.align='center'}
+pintarPie <- function (dades, titol){
+  taula <- table(dades)
+  etiquetes <- paste(names(taula), "-", taula, sep="")
+  pie(taula, labels = etiquetes, main=titol)
+}
+pintarPie(dades$marca, "Distribució de les marca")
+```
+
+Les marques amb més representació són: *ford* (48), *chervolet* (44) i *plymouth* (31).
 
 ### Diagrames de caixa
 Un altre tipus de gràfic molt útil per aquesta finalitat és el diagrama de caixa.
-```{r}
+```{r, warning=FALSE, message=FALSE}
 bplotNumerics <- function(){
   attach(mtcars)
   par(mfrow=c(2,3))
   
   #Bloxplots
-  boxplot(dades$mpg, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="MPG", main="Years")
+  boxplot(dades$mpg, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="MPG", main="MPG")
   boxplot(dades$cylinders, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="Cylinders", main="Cylinders")
   boxplot(dades$displ, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="Displ", main="Displacement")
   boxplot(dades$hp, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="HP", main="HP")
   boxplot(dades$weight, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="Weight", main="Weight")
   boxplot(dades$accel, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="Accel", main="Accel")
   boxplot(dades$model_year, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="year", main="Model year")
-  boxplot(dades$origin, col=rgb(0.3, 0.5, 0.4, 0.6), ylab="origin", main="Origin")
 }
 bplotNumerics()
-print("Accel")
 ```
 
-Aquí es pot tornar a veure com hi ha un clar biaix a la dreta per la variable "Cylinders" i "Origin", també es pot observar com les variables "Accel" i "Model Year" tenen certa simetria (com s'ha dit anteriorment) i com hi ha dades atípiques per la variable "Accel". 
+Aquí es pot veure com hi ha un clar biaix a la dreta per la variable *cylinders*, també es pot observar com les variable *accel* té certa simetria (com s'ha dit anteriorment) i com també conté dades atípiques.
 
 Les dades atípies inferiors són aquelles que tenen un valor menor a $1Q - 1.5 RIQ$ i les superiors aquelles amb un valor major a $3Q + 1.5 RIQ$. 
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 #Valors atípics per la variable Accel.
 #Inferiors
-dades[dades$accel <= 13.78 - 1.5 * IQR(dades$accel), ][c("accel", "model_year", "car_name")]
+dades[dades$accel <= 13.78 - 1.5 * IQR(dades$accel), ][c("accel")]
 
 #Superiors
-dades[dades$accel >= 17.02 + 1.5 * IQR(dades$accel), ][c("accel", "model_year", "car_name")]
+dades[dades$accel >= 17.02 + 1.5 * IQR(dades$accel), ][c("accel")]
 ```
 
 ### Resum de les variables
-En les següents taules es mostren els estadístics de centralistat i dispersió classificats com a robustos i no robustos
+En les següents taules es mostren els estadístics de centralitat i dispersió classificats com a robustos i no robustos
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 #install.packages("psych")
 library(knitr)
 library(kableExtra)
@@ -166,199 +203,359 @@ taulaResum <- function(dades, nom, fw = TRUE){
     group_rows("D. robustos", 5, 6) %>%
     group_rows("D. NO robustos", 7, 7) 
 }
-```
 
-
-```{r}
 taulaResum(dades$mpg, "mpg")
-```
 
-
-```{r}
 taulaResum(dades$displ, "disp")
-```
 
-```{r}
 taulaResum(dades$hp, "hp")
-```
 
-```{r}
 taulaResum(dades$weight, "weight")
-```
 
-```{r}
 taulaResum(dades$accel, "accel")
 ```
 
-## Es pot aplicar l'analisi de components principals?
-L'anàlisi de components principals o ACP permet descriure un conjunt de dades, resumint-lo i reduir la seva dimensionalitat. En aquest cas, s'usarà per interpretar la relació que hi ha entre les variables. 
+## Anàlisi de components principals
+L'anàlisi de components principals o *ACP* permet descriure un conjunt de dades, resumint-lo i reduir la seva dimensionalitat. En aquest cas, s'usarà per interpretar la relació que hi ha entre les variables. 
 
-Del conjunt de variables disponibles, s'ha deccidit utilitzar la variable "car_name" com a variable suplementaria en la representació i per tant queda exclosa de les variables actives.
-```{r}
+Del conjunt de variables disponibles, s'ha decidit utilitzar les variables *marca*, *marca_1*, *marca_2* i *marca_3* com a variables suplementaries en la representació, i per tant, queda exclosa de les variables actives.
+```{r, warning=FALSE, message=FALSE}
 #Seleccionar varialbes actives
-dades.PCA <- dades[, c("mpg", "cylinders", "displ", "hp", "weight", "accel", "model_year", 
-                  "origin")]
+dades.PCA <- dades[, c("mpg", "cylinders", "displ", "hp", "weight", "accel", "model_year")]
 
 names(dades.PCA)
 ```
 
-Abans de fer l'anàlisi però, cal comprovar que aquest es pugui realitzar. Això serà així si la correlació entre variables és significativa (hi ha heterocedasticitat). 
+### Es pot aplicar l'anàlisi de components principals?
+Abans de fer l'anàlisi però, cal comprovar que aquest es pugui realitzar. Això serà així si la correlació entre variables és significativa.
 
 Matriu esquemàtica de correlació entre variables.
 
-```{r,message=FALSE}
+```{r, warning=FALSE, message=FALSE, fig.align='center'}
 library("corrplot")
 cor.mat <- cor(dades.PCA)
 corrplot(cor.mat, type="lower", order="hclust", tl.col="black", tl.srt=45)
 ```
 
-Matriu de gràfics bivariants i coeficient de correlació de Pearson.
+Matriu de gràfics bivariants i coeficients de correlació de *Pearson*.
 
-```{r,message=FALSE}
+```{r, warning=FALSE, message=FALSE}
 library("PerformanceAnalytics")
-chart.Correlation(dades[,1:8], histogram = TRUE, pch = 19)
+chart.Correlation(dades[,1:7], histogram = TRUE, pch = 19)
 ```
 
-Seguidament es fa el test d'esfericitat de Barlett, que comprova si hi ha com a mínim dues de les variables de treball tenen diferent variancia, és a dir, que aplica el següent contrast d'hipòtesis: $$H_{0}: s^{2}_{1} = s^{2}_{2} \wedge s^{2}_{3} ... \wedge s^{2}_{k}$$ $$H_{1}: s^{2}_{1} \ne s^{2}_{2} \vee s^{2}_{2} \ne s^{2}_{3} ... \vee \ne s^{2}_{k} $$ On $k$ correspon al nombre de variables.
-```{r}
+Seguidament es fa el test d'esfericitat de *Barlett*, que comprova si com a mínim dues de les variables de treball tenen diferent variància, és a dir, s'aplica el següent contrast d'hipòtesis: $$H_{0}: s^{2}_{1} = s^{2}_{2} \wedge s^{2}_{3} ... \wedge s^{2}_{k}$$ $$H_{1}: s^{2}_{i} \ne s^{2}_{j} | parella(i,j) $$ On $k$ correspon al nombre de variables i *parella(i,j)* a alguna parella de variables.
+```{r, warning=FALSE, message=FALSE}
 library(psych)
 cortest.bartlett(cor.mat, n=100 )
 ```
-Degut a que el $p-value$ és molt petit (pròxim a 0) rebutgem la hipòtesis nul·la (homocedasticitat) i acceptem amb un nivell de confiança superior a 99% que com a mínim hi ha una variable amb una desviació estàndard diferent al de la resta. 
+Degut a que el $p-value$ és molt petit (pròxim a 0) es rebutja la hipòtesis nul·la i s'accepta amb un nivell de confiança del 95% que com a mínim hi ha una variable amb una variància diferent a la resta. 
 
-I també apliquem un test de $Kaiser-Mayer-Olkin$
-```{r}
+I també es pot aplicar un test de $Kaiser-Mayer-Olkin$
+```{r, warning=FALSE, message=FALSE}
 library(psych)
 KMO(cor.mat)
 ```
-Com obtenim un resultat de 0.8, assumim que el test és positiu i que es pot aplicar l'anàlisi de components principals.
+Com s'obté un resultat de 0,8 s'assumeix que el test és positiu i que es pot aplicar l'anàlisi de components principals.
 
-## Aplicant l'analisi de components principals
+### Aplicant l'anàlisi de components principals
 
-Com que ja sabem que hi ha heterocedasticitat, apliquem la tècnica de l'anàlisi de components principals amb la funció $PCA$ del paquet $FactoMineR$.
-```{r}
+S'aplica l'anàlisi de components principals amb la funció *PCA* del paquet *FactoMineR*.
+```{r, warning=FALSE, message=FALSE}
 library(FactoMineR)
-res <- PCA(dades.PCA, scale.unit=TRUE, ncp=5, graph=FALSE)
+res <- PCA(dades.PCA, scale.unit=TRUE, ncp=7, graph=FALSE)
 ```
 
-### Eixos factorials
-Com que hi ha buit variables actives, s'han trobat buit eixos factorials. En la següent llista es mostra la inèrcia que conté cada un d'aquests eixos, aquesta inèrica ens ve representada pels valors pròpis de la matriu de variancies.
-```{r}
+#### Eixos factorials
+Com que hi ha set variables actives, s'han trobat set eixos factorials. En la següent llista es mostra la inèrcia que conté cada un d'aquests eixos, aquesta inèrcia ve representada pels valors propis de la matriu de variàncies.
+```{r, warning=FALSE, message=FALSE}
 res$eig
 ```
 
-Però és clar, no serveix de gaire utilitzar-los tots, i així doncs, quins són els eixos més representatius? Segons el criteri de "Latent Root" es poden considerar tots aquells eixos amb un valor propi superior a 1, és a dir, que tenen més inèrcia que qualsevol de les variables originals.
-```{r, message=FALSE}
+Però és clar, no serveix de gaire utilitzar-los tots, i així doncs, quins són els eixos més representatius? Segons el criteri *Latent Root* es poden considerar tots aquells eixos amb un valor propi superior a 1, és a dir, que tenen més inèrcia que qualsevol de les variables originals.
+```{r, warning=FALSE, message=FALSE}
 library("factoextra")
-fviz_screeplot(res, ncp=8, barfill=c(rep(1,3),rep(2,5)))
+fviz_screeplot(res, ncp=7, barfill=c(rep(1,3),rep(2,4)))
 ```
 
-Per veure-ho amb més perspectiva, apliquem un Scree Plot entre els components principals i el seu valor pròpi per veure on es troba la discontinuïtat.
+En aquest cas, tot i que un 63,74% de la variabilitat ve explicada pel primer eix, s'ha decidit agafar els tres primers per tenir més marge en els exemples. Així doncs, amb aquests tres eixos s'obté un 87,38% de la variabilitat de les dades. 
 
-```{r}
-screeplot(princomp(dades.PCA,cor=TRUE),type = c("lines"))
-```
+També es pot comprovar quines variables han tingut un major impacte alhora de determinar els eixos, això ve dictat pel factor *contribution*. Pel primer eix, aquestes variables són: *displ*, *cylinders*, *weight* i *mpg*, i les de menor impacte són: *model_year*, *accel*. Pel segon eix les variables més impactants són *model_year* i *hp*, i pel tercer eix la variable *accel*.
 
-En aquest cas, tot i que un 60,61% de la variabilitat ve explicada pel primer eix, s'ha decidit agafar els tres primers per tenir més marge en els exemples. Així doncs, amb aquests tres eixos tenim un 82,68% de la variabilitat de les dades. 
-
-També podem veure quines variables han tingut un major impacte alhora de determinar els eixos, això ve dictat pel factor "contribution". Pel primer eix, aquestes variables són: $displ$, $cylinders$, $weight$ i $mpg$, i les de menor impacte són: $model_year$, $accel$.
-
-```{r}
+```{r, warning=FALSE, message=FALSE}
 res[["var"]][["contrib"]]
 ```
 
-Les variables més ben representades tenen un major valor en el camp "cos2", pel primer eix són: $displ$, $cylinders$, $weight$ i $mpg$, i les menys ben representades: $model_year$, $accel$ i $origin$. És important veure que en aquest cas les variables més ben representades coincideixen amb les que han tingui un major impacte per elegir l'eix factorial, però no té perquè ser sempre així (CORRECTE???).
+Les variables més ben representades tenen un major valor en el camp *cos2*, pel primer eix són: *displ*, *cylinders*, *weight* i *mpg*, i les menys ben representades: *model_year* i *accel*.
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 res[["var"]][["cos2"]]
 ```
 
-Ara per veure millor la representació de les variables sobre els eixos factorials, podem plasmar-les sobre en una cirfunferència de radi u, on els eixos de coordenades corresponen als dos eixos factorials amb més inèrica i la tonalitat de blau al nivell de contribució.
+Ara per veure millor la representació de les variables sobre els eixos factorials, es poden plasmar sobre una circumferència de radi u, on els eixos de coordenades corresponen als dos eixos factorials amb més inèrcia i la tonalitat de blau al nivell de contribució.
 
-```{r, message=FALSE}
+```{r, warning=FALSE, message=FALSE, fig.align='center'}
 #Coordenades
 res[["var"]][["cor"]]
 
 #Gràfic
-fviz_pca_var(res, axes = c(1, 2), col.var="contrib", title="1er i 3er EF")
+fviz_pca_var(res, axes = c(1, 2), col.var="contrib", title="1er i 2on EF")
 ```
 
-En el primer eix es mostren els vehicles més pesats (weight) que solen tenir una major cilindrada (cylinder) i que tendeixen a consumir més combustible per milla recorreguda (mpg). També es pot veure com la variable "disp" ens diu que els cotxes menys pes i cilindrada necessiten menys espai "displacement" per frenar. El segon eix ens diu que a mesura que augmenta l'any del model, hi ha tendència a disminuir el pes i cilindrada.
+En el primer eix es representen els vehicles més pesats (*weight*) que solien tenir una major cilindrada (*cylinder*), i que tendien a consumir més combustible per milla recorreguda (*mpg*). També es pot veure com a mesura que augmentava el pes i la cilindrada dels cotxes, aquest necessitaven més espai per frenar (*displ*).  
 
-Com que les variables $hp$, $accel$ i $origin$ no estan ben representades en cap dels dos primers eixos, però si ho estan millor en el tercer eix. Es torna a dibuixar la circunferència però aquesta vegada amb el primer i tercer eix.
-```{r, message=FALSE}
+El segon eix explica que a mesura que augmentava l'any del model (*model_year*), hi havia tendència a disminuir la potència (*hp*), disminuir el consum (*mpg*) i augmentar l'acceleració (*accel*).
+
+Ara es poden representar les observacions sobre els eixos factorials
+```{r, warning=FALSE, message=FALSE}
+fviz_pca_biplot(res, axes = c(1, 2), geom="point", title="Variables i observacions - Eixos 1 i 2")
+```
+
+Projectar les categories de les variables *marca_1*, *marca_2* i *marca_3* que són suplementaries, és a dir, es mostraran les propietats característiques dels vehicles de cada marca en tres tandes.
+```{r, warning=FALSE, message=FALSE}
+library(FactoMineR)
+representacio <- function(dades, marca, titol, eix1 = 1, eix2 = 2){
+  dades.PCA = dades[, c("mpg", "cylinders", "displ", "hp", "weight", "accel", "model_year", 
+                    marca)]
+  res<-PCA(dades.PCA , scale.unit=TRUE, ncp=5, quali.sup=c(8:8), graph = FALSE)
+  plot.PCA(res, axes=c(eix1, eix2), choix="ind", habillage="none", col.var="white", 
+           col.quali="blue", new.plot=TRUE, label=c("var", "quali"), title = titol) 
+}
+
+#Marca 1
+representacio(dades, "marca_1", "Marca_1 - Eixos: 1 i 2")
+
+#Marca 2
+representacio(dades, "marca_2", "Marca_2 - Eixos: 1 i 2")
+
+#Marca 3
+representacio(dades, "marca_3", "Marca_3 - Eixos: 1 i 2")
+```
+
+Amb aquests tres gràfics i a partir del primer eix factorial, es pot veure que les marques *vw*, *mazda*, *honda*, *triumph*, *nissan*, *renault* i *subaru* tendien (anys 70) a fabricar vehicles poc pesants, amb pocs cilindres i amb un consum baix. Les marques *volvo*, *bmw* i *ford* buscaven un cert equilibri entre pes i consum, i finalment, fabricants com *hi*, *chrysler* o *cadillac* tendien a treballar de forma contraria i fabricaven cotxes més pesants i que consumien més.
+
+A partir del segon eix, es pot veure com les marques *vw* i *nissan* tenen representació de veichles mes moderns (*model year*) mentre que els vehicles de les marques *fiat*, *capri* o *opel* són més antics.
+
+En el següent gràfic es mostra la projecció de tots els vehicles sobre els dos primers eixos factorials, utilitzant diferents símbols i colors en funció de la marca del vehicle.
+```{r, warning=FALSE, message=FALSE}
+grafic_pca_individus <- function(dades, v_marca, marca, eix1=1, eix2=2){
+  dades.PCA = dades[, c("mpg", "cylinders", "displ", "hp", "weight", "accel", "model_year", 
+                    marca)]
+  res<-PCA(dades.PCA , scale.unit=TRUE, ncp=5, quali.sup=c(8:8), graph = FALSE)  
+  fviz_pca_ind(res, axes = c(eix1, eix2), habillage = v_marca)
+}
+grafic_pca_individus(dades, dades$marca, "marca")
+```
+
+### Primer i tercer eix factorial
+Com que la variable *accel* no esta ben representada en cap dels dos primers eixos, però si ho esta millor en el tercer. Es torna a dibuixar la circumferència però aquesta vegada amb el primer i tercer eix.
+```{r, warning=FALSE, message=FALSE, fig.align='center'}
 #Gràfic
 fviz_pca_var(res, axes = c(1, 3), col.var="contrib", title="1er i 3er EF")
 ```
 
-En el tercer eix es pot intuir que a mesura que augmenta la poténcia "hp", augmenta l'acceleració "accel".
+En el tercer eix es pot intuir que a mesura que augmentava l' acceleració (*accel*) augmentava el consum de combustible (*mpg*).
 
-Ara toca representar les dades sobre els eixos factorials
-```{r, message=FALSE}
-fviz_pca_biplot(res, axes = c(1, 2), geom="point", title="Eixos i Punts")
+Distribuint les variables *marca_1*, *marca_2* i *marca_3* sobre aquests eixos factorials s'obté:
+```{r, warning=FALSE, message=FALSE}
+#Marca 1
+representacio(dades, "marca_1", "Marca_1 - Eixos: 1 i 3", eix1 = 1, eix2=3)
+
+#Marca 2
+representacio(dades, "marca_2", "Marca_2 - Eixos: 1 i 3", eix1 = 1, eix2=3)
+
+#Marca 3
+representacio(dades, "marca_3", "Marca_3 - Eixos: 1 i 3", eix1 = 1, eix2=3)
 ```
 
-Ara projectarem la variable $car_name$ que és suplementaria (no ha influit en els calculs dels eixos factorials).
-```{r, message=FALSE}
+Amb aquests tres gràfics es pot veure com les marques *hi*, *mercedes-benz* i *peugeot* tendien a fabricar cotxes amb més acceleració (*accel*), mentre que les marques *triumph*, *bmw* o *nissan* fabricaven cotxes amb menys acceleració.  
+
+Distribució dels vehicles en el primer i tercer eix diferenciats per la marca
+```{r, message=FALSE, warning=FALSE}
+grafic_pca_individus(dades, dades$marca, "marca", eix1 = 1, eix2=3)
+```
+
+```{r, message=FALSE, warning= FALSE}
 remove(dades.PCA)
-dades.PCA = dades[, c("mpg", "cylinders", "displ", "hp", "weight", "accel", "model_year", 
-                  "origin", "car_name")]
-res<-PCA(dades.PCA , scale.unit=TRUE, ncp=5, quali.sup=c(9:9), graph = FALSE)
-plot.PCA(res, axes=c(1, 2), choix="ind", habillage="none", col.ind="black",
-            col.ind.sup="blue", col.quali="magenta", label=c("ind", "ind.sup", "quali"),new.plot=TRUE)
+remove(res)
 ```
 
-Com es pot veure, al lectura de les dades és impossible degut a la gran quantitat d'aquestes que s'estan representant. Per això mostrarem 4  (FALTA!!!)
-```{r, message=FALSE}
-plot.PCA(res,axes=c(1,2),choix="ind",habillage="none",col.ind="black",invisible="ind",col.ind.sup="blue",col.quali="magenta",label=c("ind","ind.sup","quali"),new.plot=TRUE)
-```
+\newpage
+## Anàlisi predictiu
+Per aquest anàlisi, es farà una regressió lineal simple per predir el valor de la variable *MPG*, es començarà el model amb la variable més correlacionada amb aquesta (*weight*) i s'afegiran més variables per intentar millorar el model.  
 
-## Analisi predictiu
-Per fer aquest anàlisi, primer intentarem fer una regressió lineal simple per preedir el valor de la variable $MPG$ a partir de la variable $weight$. També s'aplicarà un anàlisi de variancia (ANOVA) per intentar preedir el $weight$ a través del nombre de $cylinders$.  
+**Nota:** Per construir el model s'ha decidit no dividir el conjunt de dades, posteriorment per fer la seva validació s'utilitzarà la tècnica del *k-cross fold validation*.
 
 ### Regressió lineal simple
-Per aquest models de regressió lineal s'han de complir les següents propietats
-1. Independència, s'interpreta que la observacions de la mostra s'han extret amb independencia entre elles.
-2. Linealitat, s'assumeix que la variable $MPG$ es pot modelar linealment a partir de la variable $weigth$.
-3. Normalitat en els errors, on els errors segueixen una distribució normal.
-4. Homocedasticitat, on la variancia és constant.
+Per aquest tipus de models s'han de complir les següents propietats  
 
-Per comprobar el tercer i quart punt es mostren les gràfiques.
-```{r, message=FALSE}
-res <- lm(mpg ~ weight, data = dades)
-oldpar <- par(oma=c(0,0,3,0), mfrow=c(2,2))
-plot(res)
-par(oldpar)
++ 1. Independència (les observacions de la mostra s'han extret amb independència entre elles).  
++ 2. Linealitat (la variable resposta es pot ajustar linealment a partir de les variables explicatives).  
++ 3. Normalitat en els residus (els residus segueixen una distribució normal).  
++ 4. Homocedasticitat (la variància dels residus és constant).
+
+El primer i segon punt s'assumeixen, per comprovar el tercer i quart punt es mostren les gràfiques dels residus que relacionen la variable *weight* amb la variable *mpg*.
+```{r, warning=FALSE, message=FALSE}
+parametres_reg <- function(formula, dades, titol){
+  res <- lm(formula, data = dades)
+  oldpar <- par(oma=c(0,0,3,0), mfrow=c(2,2))
+  plot(res)
+  par(oldpar) 
+}
+parametres_reg(mpg ~ weight, dades)
 ```
 
-El gràfic "Residuals vs Fitted" mostra la homocedasticitat (punt 4) mentre que el gràfic "Normal Q-Q" mostra la normalitat dels errors (Punt 3). 
+El gràfic *Residuals vs Fitted* mostra les variàncies dels residus (punt 4) mentre que el gràfic *Normal Q-Q* mostra la distribució dels errors (Punt 3). 
 
-Per assegurar que es compleix l'homocedasticitat, es pot aplicar un test $Breuch$ $Pagane$ on la hipòtesi nul·la és l'homocedasticitat.
-```{r, message=FALSE}
+Per assegurar que es compleix l'homocedasticitat, es pot aplicar un test *Breuch Pagane* on les hipòtesis són:  
+
+$H_{0}:$ *Hi ha homocedasticitat*  
+
+$H_{1}:$ *No hi ha homocedasticitat*
+
+```{r, warning=FALSE, message=FALSE}
 #install.packages("lmtest")
 library(lmtest)
 bptest(mpg~weight,data=dades)
 ```
 
-Com que el p-value del test és molt inferior al nivell de significació, amb un nivell de confiança superior al 99% es pot rebutjar la hipòtesi nul·la i considerar que no hi ha homocedasticitat (hi ha hterocedasticitat).
+Com que el *p-value* del test és molt inferior al nivell de significació ($\alpha = 0.05$), amb un nivell de confiança del 95% **es pot rebutjar la hipòtesi nul·la i considerar que no hi ha homocedasticitat** (hi ha heterocedasticitat).
 
-Per comprobar la constància en els errors, es pot aplicar un test de $Shapiro$ $Wilk$ i un altre d' $Anderson-Daling$ on en tots dos casos, la hipòtesi nul·la representa normalitat en els residus.
-```{r, message=FALSE}
+Per comprovar la constància en els errors, es pot aplicar un test de *Shapiro Wilk* i un altre d' *Anderson-Daling*, on en tots dos casos, les hipòtesis plantejades són:
+
+$H_{0}:$ *Hi ha normalitat en els residus*  
+
+$H_{1}:$ *No hi ha normalitat en els residus*  
+
+```{r, warning=FALSE, message=FALSE}
+res <- lm(mpg~weight, data = dades)
+#Shapiro Wilk test
 shapiro.test(residuals(res))
-```
 
-```{r, message=FALSE}
+#Anderson-Daling test
 #install.packages("nortest")
 library(nortest)
 ad.test(residuals(res))
 ```
-En el test de $Shapiro$ $Wilk$ s'ha obtingut un p-value de 2.525e-7 i en el test d'$Anderson-Daling$ un p-value de 1.428e-6, i per tant en tots dos casos podem descartar la hipòtesi nul·la amb un nivell de confiança superior al 99% i dir que els residus no segueixen una distribució normal.
+En el test de *Shapiro Wilk* s'ha obtingut un *p-value* de $2.038 \cdot 10^{-6}$ i en el test d'*Anderson-Daling* un p-value de $2.169 \cdot 10^{-6}$, i per tant, en tots dos casos es pot **descartar la hipòtesi nul·la amb un nivell de confiança del 95%, i es pot dir que els residus no segueixen una distribució normal.**  
 
-Com que hem demostrat que en aquest cas no es compleixen el 3er i 4rt punt anunciats, la regressió que s'obtindria seria de baixa qualitat i per aquest motiu no es continua.
+Com que s'ha demostrat que en aquest cas no es compleix ni el 3er ni el 4rt punt anunciats, la regressió que s'obtindria seria de baixa qualitat i no es podria donar un interval de confiança que acotés la predicció. 
 
-#### Fer ANOVA per weight ~ cylinders ??? no homocedasticitat (p-value = 0.0025)
-```{r, message=FALSE}
-bptest(displ~cylinders,data=dades)
-library(nortest)
-ad.test(residuals(lm(weight~cylinders+displ, dades)))
+Observant la variable *mpg* **es pot veure que hi ha un biaix a la dreta, per aquest motiu pot ser que aplicant una correcció logarítmica sobre la variable resposta s'aconsegueixi normalitat en els residus i homocedasticitat**.
+
+
+```{r, warning=FALSE, message=FALSE}
+#Correcció logarítmica en la variable mpg
+dades$log_mpg <- log(dades$mpg)
 ```
+
+Un cop aplicada la transformació, es torna a fer la representació gràfica, i els testos *Breuch Pagane* per l'homocedasticitat i *Shapiro Wilk* per la normalitat en els errors.
+
+```{r, warning=FALSE, message=FALSE}
+#Regressió corregida
+res_log <- lm(log_mpg ~ weight, data = dades)
+
+#Gràfic
+parametres_reg(formula = log_mpg ~ weight, dades = dades)
+
+#Homocedasticitat
+bptest(log_mpg~weight,data=dades)
+
+#Normalitat en els errors
+shapiro.test(residuals(res_log))
+```
+
+En aquesta ocasió s'obté un *p-value* de 0,1041 pel test de *Breuch Pagane*, i per tant, **amb un nivell de confiança del 95% no hi ha suficients evidències per rebutjar la hipòtesi nul·la, i per això s'assumeix homocedasticitat**. Per altre banda, en el test de *Shapiro Wilk* s'obté un *p-value* de 0,1059, i per tant, **amb un nivell de confiança del 95% no es pot rebutjar la hipòtesi nul·la, i s'assumeix que els errors segueixen una distribució normal**.  
+
+La forma que pren aquesta primera regressió és: $$\hat{y} = 4.142 + -3.505 \cdot 10^{-4} \cdot x_{1} + \epsilon$$ És a dir: $$mpg = 4.142 + -3.505 \cdot 10^{-4} \cdot weight + \epsilon$$ Tot i que el primer coeficient de la regressió ($\beta_{1}$) és molt pròxim a 0, s'ha obtingut un *Adjusted $R^{2}$* de 0,7662.
+```{r, warning=FALSE, message=FALSE}
+#Dades resultants de la regressió
+summary(res_log)
+```
+
+Ara es representa la regressió amb un *scatter plot*
+```{r, message=FALSE, warning=FALSE}
+#Representació de la regressió
+res_log = lm(log_mpg~weight,dades)
+plot(log_mpg~weight, data=dades)
+abline(res_log, col='red') 
+```
+
+Amb aquest gràfic es pot tornar a veure com a mesura que augmenta el pes, la variable *mpg* tendeix a decréixer.
+
+Ara es poden afegir més variables al model (passarà de ser una regressió lineal simple a una regressió lineal múltiple) per tal de millorar-lo, per això, s'ha de provar d'afegir aquelles variables poc relacionades amb les que ja inclou el model (que intentin explicar el que encara no està explicat) i que estiguin el màxim de correlacionades amb la variable resposta.  
+
+Es prova d'afegir la variable *hp* i es tornen a fer els testos de homocedasticitat i normalitat d'errors (cal tornar a fer-los per assegurar que no es perd qualitat amb les noves variables).
+
+```{r, warning=FALSE, message=FALSE}
+#Nova regressió
+res_log <- lm(log_mpg ~ weight + hp, dades)
+
+#Gràfics
+parametres_reg(log_mpg ~ weight + hp, dades)
+
+#Homocedasticitat
+bptest(res_log)
+
+#Normalitat en els errors
+shapiro.test(residuals(res_log))
+```
+En el test de constància en els errors s'obté un *p-value* de 0,2058, i per tant, es continua assumint homocedasticitat, i en el test de normalitat dels residus s'obté un *p-value* de 0,07722 i es segueix assumint normalitat en els residus.  
+
+El nou model queda: $$\hat{y} = 4.098 + -3.431 \cdot 10^{-4} \cdot x_{1} + 4.2 \cdot 10^{-4} \cdot x_{2} + \epsilon$$ És a dir: $$mpg = 4.098 + -3.431 \cdot 10^{-4} \cdot weight + 4.2 \cdot 10^{-4} \cdot hp + \epsilon$$
+
+Com ara hi ha tres variables involucrades, cal fer un gràfic 3D per representar-lo.
+
+```{r, warning=FALSE, message=FALSE}
+library(ggplot2)
+plot_reg_3d <- function(v1,v2,v3){
+  library(scatterplot3d) 
+  attach(mtcars) 
+  s3d <-scatterplot3d(v2,v3,v1, pch=16, highlight.3d=TRUE,
+    type="h", main="mpg ~ weight + accel")
+  fit <- lm(v1 ~ v2+v3) 
+  s3d$plane3d(fit) 
+}
+plot_reg_3d(dades$mpg, dades$weight, dades$accel)
+```
+
+Per veure com de bo és aquest model, es consulta altre vegada el valor del paràmetre $Adjusted R^{2}$
+```{r, message=FALSE, warning=FALSE}
+summary(res_log)
+```
+
+Aquest valor ara és de 0,7666 (en vers al 0,7662 obtingut només amb la variable *weight*), per veure si aquesta millora és significativa, es pot aplicar un test *ANOVA* on les hipòtesis són: $$H_{0}: \beta_{2} = 0$$ $$H_{1}: \beta_{2} \ne 0$$
+```{r, message=FALSE, warning=FALSE}
+anova(lm(mpg~weight, dades), lm(mpg~weight+hp, dades))
+```
+
+Com que el *p-value* és 0,263, **amb un 95% de confiança no es pot rebutjar la hipòtesi nul·la, i per tant, es considerà que la contribució de la variable *hp* al model és 0**.  
+
+Degut que la inclusió de la variable *hp* no ha portat una millora significant, es decideix utilitzar el model sense aquesta variable i aquest finalment queda de la següent manera: $$mpg = 4.142 + -3.505 \cdot 10^{-4} \cdot weight + \epsilon$$  
+
+####Eficiència del model
+Ara es vol comprovar de forma empírica com de bé, el model prediu el consum a partir del pes i per això s'utilitza la tècnica del *k-fold cross validate*. Com que s'aconsella utilitzar un 80% de les dades (314 observacions) per construir el model i el 20% per testejar-lo (78 observacions), el valor del $k$ serà 5.
+```{r, warning=FALSE, message=FALSE}
+library(DAAG)
+
+#k-fold cross validation amb k=5
+kfold = cv.lm(data=dades, lm(log_mpg ~ weight, dades), m=5, printit = FALSE)
+```
+
+Es calcula l'error comés en la validació.
+```{r}
+errors_log = mean(sqrt(sum(kfold$log_mpg-kfold$cvpred)^2))
+
+#En unitats mpg
+errors = exp(errors_log)
+
+#mitja de la variable mpg
+mitja_real = mean(dades$mpg)
+
+#Error relatiu
+(mitja_real-errors)/mitja_real
+
+remove(cor.mat); remove(dades); remove(res); remove(res_log); remove(kfold); remove(errors_log); remove(errors); remove(mitja_real)
+```
+
+L'error comés en aquesta predicció ronda 1,179 milles per galó, tenint en compte que la mitja de totes les observacions és 23,45, i per tant s'ha comés un error relatiu del 0.95.
